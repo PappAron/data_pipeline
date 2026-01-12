@@ -6,14 +6,14 @@ storage_account = "stnetflixdatalake001"
 bronze_path = f"abfss://bronze@{storage_account}.dfs.core.windows.net/netflix/netflix_titles.csv"
 silver_path = f"abfss://silver@{storage_account}.dfs.core.windows.net/netflix_cleaned"
 
-# --- 2. AUTHENTICATION (The "Bypass" Method) ---
-# Paste your Access Key directly here. 
-# Once this works, we can move it to a Spark Config in Terraform.
+# --- 2. AUTHENTICATION (The Secure Way) ---
+# This pulls the CURRENT key directly from Azure Key Vault
+storage_key = dbutils.secrets.get(scope="netflix-scope", key="storage-account-key")
+
 spark.conf.set(
     f"fs.azure.account.key.{storage_account}.dfs.core.windows.net", 
-    "9whTm/GM6BgvIBCFcMqp9l2hs01jp0wB1RVvNKZNhNagElt0Av8rikXnOaZTNUtovGPt+0+8HXEr+ASte5atNw=="
+    storage_key
 )
-
 # --- 3. DEFINE SCHEMA ---
 schema = StructType([
     StructField("show_id", StringType(), True),

@@ -4,7 +4,7 @@ from azure.storage.blob import BlobServiceClient
 # Now automatically fetched from the system environment
 CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
 CONTAINER_NAME = "bronze"
-LOCAL_FILE = "data/netflix_titles.csv"
+LOCAL_FILE = "../data/netflix_titles.csv"
 
 def upload():
     if not CONNECTION_STRING:

@@ -1,5 +1,4 @@
-# Databricks notebook source
-from pyspark.sql.functions import col, avg, count, desc, round
+from pyspark.sql.functions import col, avg, count, desc, round, explode, split
 
 # --- 1. CONFIGURATION ---
 storage_account = "stnetflixdatalake001"
@@ -19,12 +18,14 @@ gold_path_trends = f"abfss://gold@{storage_account}.dfs.core.windows.net/yearly_
 # --- 2. LOAD & PREPARE ---
 # Load the enriched silver data
 df_silver = spark.read.format("delta").load(enriched_path)
-
+df_silver.select("title", "release_year", "imdb_rating").show(5)
 # Data Cleaning for Gold (Type Casting)
 df_gold_base = df_silver.withColumn("imdb_rating_float", col("imdb_rating").cast("float"))
 
 # --- 3. TRANSFORM: GENRE PERFORMANCE ---
-df_genre_performance = df_gold_base.groupBy("listed_in") \
+df_exploded_genres = df_gold_base.withColumn("genre", explode(split(col("listed_in"), ", ")))
+
+df_genre_performance = df_exploded_genres.groupBy("genre") \
     .agg(
         count("show_id").alias("total_titles"),
         round(avg("imdb_rating_float"), 2).alias("avg_imdb_rating")
@@ -32,6 +33,9 @@ df_genre_performance = df_gold_base.groupBy("listed_in") \
     .filter(col("total_titles") > 5) \
     .orderBy(desc("avg_imdb_rating"))
 
+print("--- Step 3: Top 5 Highest Rated Individual Genres ---")
+
+df_genre_performance.show(5)
 # --- 4. TRANSFORM: CONTENT TRENDS ---
 df_yearly_trends = df_gold_base.groupBy("release_year") \
     .agg(
@@ -39,7 +43,7 @@ df_yearly_trends = df_gold_base.groupBy("release_year") \
         round(avg("imdb_rating_float"), 2).alias("yearly_avg_rating")
     ) \
     .orderBy("release_year")
-
+df_yearly_trends.show(5)
 # --- 5. WRITE TO GOLD LAYER (FILES) ---
 # Direct file writes work on all Tiers
 df_genre_performance.write.format("delta").mode("overwrite").save(gold_path_genre)
@@ -61,3 +65,4 @@ spark.sql(f"""
 """)
 
 print("✅ Gold layer aggregates created and registered successfully!")
+display(spark.sql("SELECT * FROM hive_metastore.netflix_analytics.genre_performance LIMIT 10"))
