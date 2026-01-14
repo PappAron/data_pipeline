@@ -1,5 +1,10 @@
 import os
 from azure.storage.blob import BlobServiceClient
+from datetime import datetime
+
+subject = "netflix"
+table = "titles"
+date_path = datetime.now().strftime("%Y/%m/%d") # Result: 2026/01/14
 
 # Now automatically fetched from the system environment
 CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
@@ -12,7 +17,7 @@ def upload():
         return
 
     blob_service_client = BlobServiceClient.from_connection_string(CONNECTION_STRING)
-    blob_client = blob_service_client.get_blob_client(container=CONTAINER_NAME, blob="netflix/netflix_titles.csv")
+    blob_client = blob_service_client.get_blob_client(container=CONTAINER_NAME, blob=f"{subject}/{table}/{date_path}/netflix_titles.csv")
 
     with open(LOCAL_FILE, "rb") as data:
         blob_client.upload_blob(data, overwrite=True)

@@ -3,9 +3,9 @@ from pyspark.sql.types import *
 
 # --- 1. CONFIGURATION ---
 storage_account = "stnetflixdatalake001"
-bronze_path = f"abfss://bronze@{storage_account}.dfs.core.windows.net/netflix/netflix_titles.csv"
-silver_path = f"abfss://silver@{storage_account}.dfs.core.windows.net/netflix_cleaned"
 
+bronze_path = f"abfss://bronze@{storage_account}.dfs.core.windows.net/netflix/titles/*/*/*/netflix_titles.csv"
+silver_path = f"abfss://silver@{storage_account}.dfs.core.windows.net/netflix_cleaned"
 # --- 2. AUTHENTICATION (The Secure Way) ---
 # This pulls the CURRENT key directly from Azure Key Vault
 storage_key = dbutils.secrets.get(scope="netflix-scope", key="storage-account-key")
@@ -33,6 +33,9 @@ schema = StructType([
 # --- 4. READ DATA (Standard Batch) ---
 # We use spark.read instead of readStream to bypass UC metadata checks
 df_raw = spark.read.csv(bronze_path, header=True, schema=schema)
+
+print("--- Step 4: Bronze Data Evolution (Initial Load) ---")
+df_raw.select("show_id", "title", "date_added").show(5)
 
 # --- 5. TRANSFORMATIONS ---
 df_silver = (df_raw

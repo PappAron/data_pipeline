@@ -60,6 +60,9 @@ df_enriched = df_to_enrich.withColumn("omdb", omdb_udf(col("title"))) \
                           .withColumn("box_office", col("omdb.box_office")) \
                           .drop("omdb")
 
+print("--- Step 4: Silver Data Evolution (API Enrichment Results) ---")
+df_enriched.select("title", "imdb_rating", "awards").show(5)
+
 # --- 5. DELTA MERGE (UPSERT) ---
 # Direct path-based merge to bypass Unity Catalog
 if DeltaTable.isDeltaTable(spark, enriched_path):
